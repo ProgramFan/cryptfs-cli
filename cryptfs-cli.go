@@ -16,11 +16,10 @@ import (
 
 func main() {
 	var rootCmd = &cobra.Command{
-		Use:   "cryptfs-cli",
-		Short: "cryptfs-cli manages encrypted repositories using gpg and cryptfs tools",
-		Long:  "cryptfs-cli allows you to create, mount, and unmount encrypted repositories using GPG for passphrase management and cryptfs tools (gocryptfs or cppcryptfs).",
-
-		// You can add a version flag or command here if desired
+		Use:     "cryptfs-cli",
+		Short:   "cryptfs-cli manages encrypted repositories using gpg and cryptfs tools",
+		Long:    "cryptfs-cli allows you to create, mount, and unmount encrypted repositories using GPG for passphrase management and cryptfs tools (gocryptfs or cppcryptfs) for the backends.",
+		Version: "0.1.0",
 	}
 
 	rootCmd.AddCommand(createCmd)
@@ -73,7 +72,7 @@ var umountCmd = &cobra.Command{
 	Use:   "umount <mount_point>",
 	Short: "Unmount a repository",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		mountPoint := args[0]
 		err := umountRepository(mountPoint)
 		if err != nil {
