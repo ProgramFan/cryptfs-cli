@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 
 	"github.com/spf13/cobra"
 )
@@ -340,17 +339,9 @@ func umountRepositoryLinux(mountPoint string) error {
 	if err == nil {
 		fmt.Printf("Unmounted '%s' successfully.\n", mountPoint)
 		return nil
-	}
-
-	// If fusermount fails, try syscall.Unmount
-	fmt.Println("fusermount failed, trying syscall.Unmount...")
-	err = syscall.Unmount(mountPoint, 0)
-	if err != nil {
+	} else {
 		return fmt.Errorf("error unmounting '%s': %v, %s", mountPoint, err, umountStderr.String())
 	}
-
-	fmt.Printf("Unmounted '%s' successfully.\n", mountPoint)
-	return nil
 }
 
 func umountRepositoryWindows(mountPoint string) error {
