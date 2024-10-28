@@ -77,13 +77,9 @@ go build -o cryptfs-cli.exe
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
----
-
 ## Contributing
 
 Contributions are welcome! Please open issues or submit pull requests for any improvements or bug fixes.
-
----
 
 ## Notes
 
