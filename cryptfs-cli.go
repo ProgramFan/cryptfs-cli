@@ -210,6 +210,13 @@ func createRepositoryWindows(repoDir, objectsDir, passphraseFile string) error {
 		return fmt.Errorf("error initializing cppcryptfs: %v, %s", err, initStderr.String())
 	}
 
+	srcConfPath := filepath.Join(objectsDir, "gocryptfs.conf")
+	dstConfPath := filepath.Join(repoDir, "gocryptfs.conf")
+	err = os.Rename(srcConfPath, dstConfPath)
+	if err != nil {
+		return fmt.Errorf("failed to move gocryptfs.conf: %v", err)
+	}
+
 	fmt.Printf("Repository created successfully at '%s'\n", filepath.Dir(objectsDir))
 	return nil
 }
@@ -229,9 +236,18 @@ func decryptPassphrase(passphraseFile string) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
+func isWindowsDriveLetter(path string) bool {
+	if len(path) == 2 && path[1] == ':' {
+		// Check if first character is a letter (A-Z or a-z)
+		return (path[0] >= 'A' && path[0] <= 'Z') || (path[0] >= 'a' && path[0] <= 'z')
+	}
+	return false
+}
+
 func mountRepository(repoDir string, mountPoint string, options string) error {
 	passphraseFile := filepath.Join(repoDir, "passphrase.gpg")
-	cipherDir := filepath.Join(repoDir, "objects")
+	repoAbsDir, _ := filepath.Abs(repoDir)
+	cipherDir := filepath.Join(repoAbsDir, "objects")
 
 	// Check repository layout
 	if !fileExists(passphraseFile) || !dirExists(cipherDir) {
@@ -239,14 +255,29 @@ func mountRepository(repoDir string, mountPoint string, options string) error {
 	}
 
 	// Ensure mountPoint exists
-	err := os.MkdirAll(mountPoint, 0700)
-	if err != nil {
-		return fmt.Errorf("failed to create mount point: %v", err)
+	if runtime.GOOS != "windows" || !isWindowsDriveLetter(mountPoint) {
+		// Convert to absolute path (important for cppcryptfs)
+		absPath, err := filepath.Abs(mountPoint)
+		if err != nil {
+			return fmt.Errorf("failed to get absolute path: %v", err)
+		}
+		// Check if directory already exists
+		if _, err := os.Stat(absPath); os.IsNotExist(err) {
+			// Directory doesn't exist, create it
+			err = os.MkdirAll(absPath, 0700)
+			if err != nil && !os.IsExist(err) {
+				return fmt.Errorf("failed to create mount point: %v", err)
+			}
+		} else if err != nil && !os.IsExist(err) {
+			// Some other error occurred during stat
+			return fmt.Errorf("failed to check mount point: %v", err)
+		}
+		mountPoint = absPath
 	}
 
 	if runtime.GOOS == "windows" {
 		// Windows: Use cppcryptfs
-		return mountRepositoryWindows(cipherDir, passphraseFile, mountPoint, options)
+		return mountRepositoryWindows(cipherDir, passphraseFile, mountPoint, options, repoDir)
 	} else {
 		// Linux and others: Use gocryptfs
 		return mountRepositoryLinux(cipherDir, passphraseFile, mountPoint, options, repoDir)
@@ -285,7 +316,7 @@ func mountRepositoryLinux(cipherDir, passphraseFile, mountPoint, options, repoDi
 	return nil
 }
 
-func mountRepositoryWindows(cipherDir, passphraseFile, mountPoint, options string) error {
+func mountRepositoryWindows(cipherDir, passphraseFile, mountPoint, options, repoDir string) error {
 	fmt.Println("Decrypting passphrase...")
 	passphraseBytes, err := decryptPassphrase(passphraseFile)
 	if err != nil {
@@ -297,6 +328,8 @@ func mountRepositoryWindows(cipherDir, passphraseFile, mountPoint, options strin
 		"--mount=" + cipherDir,
 		"--drive=" + mountPoint,
 		"--password=" + strings.TrimSpace(string(passphraseBytes)),
+		"--config=" + filepath.Join(repoDir, "gocryptfs.conf"),
+		"-t", "-x",
 	}
 
 	// Add mount options if cppcryptfs supports them
@@ -320,6 +353,9 @@ func mountRepositoryWindows(cipherDir, passphraseFile, mountPoint, options strin
 }
 
 func umountRepository(mountPoint string) error {
+	if !isWindowsDriveLetter(mountPoint) {
+		mountPoint, _ = filepath.Abs(mountPoint)
+	}
 	if runtime.GOOS == "windows" {
 		return umountRepositoryWindows(mountPoint)
 	} else {
