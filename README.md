@@ -1,12 +1,12 @@
 # cryptfs-cli
 
-`cryptfs-cli` is a cross-platform command-line tool for creating, mounting, and unmounting encrypted repositories using **GPG** for passphrase management, **gocryptfs** (Linux), and **cppcryptfs** (Windows).
+`cryptfs-cli` is a cross-platform command-line tool for creating, mounting, and unmounting encrypted repositories using **GPG** for passphrase management. **gocryptfs** (Linux), and **cppcryptfs** (Windows) are used as backends.
 
 ## Features
 
 - **Cross-platform**: Runs on both Linux and Windows.
 - **Flexible Encryption**: Uses `gocryptfs` on Linux and `cppcryptfs` on Windows.
-- **Secure Passphrase Management**: Leverages GPG for passphrase encryption.
+- **Secure Passphrase Management**: Leverages GPG for passphrase encryption. Combined with OpenPGP-compatible smart cards like YubiKey, the security is ensured.
 - **User-friendly CLI**: Built with the Cobra library for comprehensive help and documentation.
 
 ## Installation
