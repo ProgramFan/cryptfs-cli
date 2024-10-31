@@ -43,7 +43,7 @@ var createCmd = &cobra.Command{
 			cmd.Help()
 			os.Exit(1)
 		}
-		repoDir := args[0]
+		repoDir, _ := filepath.Abs(args[0])
 		err := createRepository(user, repoDir)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
@@ -52,14 +52,22 @@ var createCmd = &cobra.Command{
 	},
 }
 
+func normalizeMountPoint(path string) (string, error) {
+	if isWindowsDriveLetter(path) || filepath.IsAbs(path) {
+		return path, nil
+	} else {
+		return filepath.Abs(path)
+	}
+}
+
 var mountCmd = &cobra.Command{
 	Use:   "mount [flags] <repo_dir> <mount_point>",
 	Short: "Mount an encrypted repository",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		options, _ := cmd.Flags().GetString("options")
-		repoDir := args[0]
-		mountPoint := args[1]
+		repoDir, _ := filepath.Abs((args[0]))
+		mountPoint, _ := normalizeMountPoint(args[1])
 		err := mountRepository(repoDir, mountPoint, options)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
@@ -73,7 +81,7 @@ var umountCmd = &cobra.Command{
 	Short: "Unmount a repository",
 	Args:  cobra.ExactArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		mountPoint := args[0]
+		mountPoint, _ := normalizeMountPoint(args[0])
 		err := umountRepository(mountPoint)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
@@ -238,7 +246,6 @@ func decryptPassphrase(passphraseFile string) ([]byte, error) {
 
 func isWindowsDriveLetter(path string) bool {
 	if len(path) == 2 && path[1] == ':' {
-		// Check if first character is a letter (A-Z or a-z)
 		return (path[0] >= 'A' && path[0] <= 'Z') || (path[0] >= 'a' && path[0] <= 'z')
 	}
 	return false
@@ -256,15 +263,10 @@ func mountRepository(repoDir string, mountPoint string, options string) error {
 
 	// Ensure mountPoint exists
 	if runtime.GOOS != "windows" || !isWindowsDriveLetter(mountPoint) {
-		// Convert to absolute path (important for cppcryptfs)
-		absPath, err := filepath.Abs(mountPoint)
-		if err != nil {
-			return fmt.Errorf("failed to get absolute path: %v", err)
-		}
 		// Check if directory already exists
-		if _, err := os.Stat(absPath); os.IsNotExist(err) {
+		if _, err := os.Stat(mountPoint); os.IsNotExist(err) {
 			// Directory doesn't exist, create it
-			err = os.MkdirAll(absPath, 0700)
+			err = os.MkdirAll(mountPoint, 0700)
 			if err != nil && !os.IsExist(err) {
 				return fmt.Errorf("failed to create mount point: %v", err)
 			}
@@ -272,7 +274,6 @@ func mountRepository(repoDir string, mountPoint string, options string) error {
 			// Some other error occurred during stat
 			return fmt.Errorf("failed to check mount point: %v", err)
 		}
-		mountPoint = absPath
 	}
 
 	if runtime.GOOS == "windows" {
@@ -353,9 +354,6 @@ func mountRepositoryWindows(cipherDir, passphraseFile, mountPoint, options, repo
 }
 
 func umountRepository(mountPoint string) error {
-	if !isWindowsDriveLetter(mountPoint) {
-		mountPoint, _ = filepath.Abs(mountPoint)
-	}
 	if runtime.GOOS == "windows" {
 		return umountRepositoryWindows(mountPoint)
 	} else {
