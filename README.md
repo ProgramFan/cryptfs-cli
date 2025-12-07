@@ -1,24 +1,15 @@
 # cryptfs-cli
 
-`cryptfs-cli` is a cross-platform command-line tool for creating, mounting, and unmounting encrypted repositories using **GPG** for passphrase management. **gocryptfs** (Linux), and **cppcryptfs** (Windows) are used as backends.
+`cryptfs-cli` is a cross-platform CLI for creating, mounting, and unmounting encrypted repositories. It generates a random passphrase, encrypts it with **GPG**, and passes it to **gocryptfs** (Linux) or **cppcryptfs** (Windows) for the actual filesystem work.
 
-## Features
+## Requirements
 
-- **Cross-platform**: Runs on both Linux and Windows.
-- **Flexible Encryption**: Uses `gocryptfs` on Linux and `cppcryptfs` on Windows.
-- **Secure Passphrase Management**: Leverages GPG for passphrase encryption. Combined with OpenPGP-compatible smart cards like YubiKey, the security is ensured.
-- **User-friendly CLI**: Built with the Cobra library for comprehensive help and documentation.
+- Go 1.20+ (to build)
+- GPG with a reachable key for the `-u/--user` flag
+- Linux: `gpg`, `gocryptfs`, `fusermount`
+- Windows: `gpg` (e.g., Gpg4win), `cppcryptfs.exe`, `cppcryptfsctl.exe`
 
 ## Installation
-
-### Prerequisites
-
-Ensure the following tools are installed and accessible in your system’s PATH:
-
-- **Linux**: `gocryptfs`, `gpg`, `fusermount`
-- **Windows**: `cppcryptfs.exe`, `cppcryptfsctl.exe`, `gpg` (from Gpg4win)
-
-### Build
 
 Clone the repository and build the binary:
 
@@ -33,6 +24,14 @@ On Windows, use the following to create the executable:
 ```powershell
 go build -o cryptfs-cli.exe
 ```
+
+## Repository layout
+
+`cryptfs-cli create` produces the following structure:
+
+- `objects/`: the ciphertext directory passed to gocryptfs/cppcryptfs
+- `passphrase.gpg`: GPG-encrypted random passphrase (0600)
+- `gocryptfs.conf`: backend config generated during init (0600)
 
 ## Usage
 
@@ -51,6 +50,8 @@ go build -o cryptfs-cli.exe
    - `-u, --user <gpg_user>`: Specifies the GPG user/email for encryption.
    - `<repo_dir>`: The directory for the encrypted repository.
 
+   The command generates a random passphrase, encrypts it to the provided GPG identity, and initializes the backend with deterministic names (`gocryptfs -init` on Linux, `cppcryptfsctl --init` on Windows). Config files are written with 0600 permissions.
+
 2. **Mount a Repository**
 
    Mounts an encrypted repository to a specified directory.
@@ -63,6 +64,8 @@ go build -o cryptfs-cli.exe
    - `<repo_dir>`: The repository directory.
    - `<mount_point>`: The directory to mount the decrypted content.
 
+   On Linux, the mount point is created if missing and `gocryptfs` is invoked with `-extpass "gpg --decrypt passphrase.gpg"` and the provided options (passed directly to `-o`). On Windows, supply a drive letter (e.g., `X:`) or absolute path; `cppcryptfs` is called with the decrypted passphrase, and the `-o/--options` flag is currently ignored on that platform.
+
 3. **Unmount a Repository**
 
    Unmounts a previously mounted repository.
@@ -71,7 +74,20 @@ go build -o cryptfs-cli.exe
    cryptfs-cli umount <mount_point>
    ```
 
-   - `<mount_point>`: The mount point to unmount.
+   - `<mount_point>`: The mount point to unmount. Uses `fusermount -u` on Linux and `cppcryptfs --unmount` on Windows.
+
+## Example (Linux)
+
+```bash
+# Create
+cryptfs-cli create -u alice@example.com ~/secure-notes
+
+# Mount
+cryptfs-cli mount ~/secure-notes ~/secure-notes-plain
+
+# Unmount
+cryptfs-cli umount ~/secure-notes-plain
+```
 
 ## License
 
