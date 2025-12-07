@@ -23,7 +23,7 @@ Ensure the following tools are installed and accessible in your system’s PATH:
 Clone the repository and build the binary:
 
 ```bash
-git clone https://github.com/yourusername/cryptfs-cli.git
+git clone https://github.com/programfan/cryptfs-cli.git
 cd cryptfs-cli
 go build -o cryptfs-cli
 ```
