@@ -165,7 +165,7 @@ fn generate_encrypted_passphrase(user: &str, passphrase_file: &Path) -> Result<(
         .take()
         .context("failed to capture gpg --gen-random stdout")?;
 
-    let mut encrypt_child = Command::new("gpg")
+    let encrypt_child = Command::new("gpg")
         .args(["--encrypt", "--sign", "-r", user, "-o"])
         .arg(passphrase_file)
         .stdin(Stdio::from(random_stdout))
