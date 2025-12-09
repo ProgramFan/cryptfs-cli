@@ -8,7 +8,10 @@ use cli::{Cli, Commands};
 
 fn main() {
     if let Err(err) = run() {
-        eprintln!("{err}");
+        eprintln!("Error: {err}");
+        for cause in err.chain().skip(1) {
+            eprintln!("Caused by: {cause}");
+        }
         std::process::exit(1);
     }
 }

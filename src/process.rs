@@ -26,6 +26,19 @@ pub fn run_with_output(cmd: &mut Command) -> Result<Output> {
         Ok(output)
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        bail!("`{desc}` failed: {}", stderr.trim());
+        let stdout = String::from_utf8_lossy(&output.stdout);
+
+        let mut messages = Vec::new();
+        if !stderr.trim().is_empty() {
+            messages.push(format!("stderr: {}", stderr.trim()));
+        }
+        if !stdout.trim().is_empty() {
+            messages.push(format!("stdout: {}", stdout.trim()));
+        }
+        if messages.is_empty() {
+            messages.push(format!("exit status: {}", output.status));
+        }
+
+        bail!("`{desc}` failed: {}", messages.join("\n"));
     }
 }

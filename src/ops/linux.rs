@@ -11,6 +11,9 @@ pub fn init_repository(repo_dir: &Path, objects_dir: &Path, passphrase_file: &Pa
     let config_str = config_path
         .to_str()
         .context("repository path is not valid UTF-8")?;
+    let passphrase_str = passphrase_file
+        .to_str()
+        .context("passphrase path is not valid UTF-8")?;
 
     let mut cmd = Command::new("gocryptfs");
     cmd.args([
@@ -20,10 +23,7 @@ pub fn init_repository(repo_dir: &Path, objects_dir: &Path, passphrase_file: &Pa
         config_str,
     ]);
     cmd.arg("-extpass");
-    cmd.arg(format!(
-        "gpg --decrypt \"{}\"",
-        passphrase_file.display()
-    ));
+    cmd.arg(format!("gpg --decrypt {passphrase_str}"));
     cmd.arg(objects_dir);
 
     run_with_output(&mut cmd).context("gocryptfs init failed")?;
@@ -46,14 +46,14 @@ pub fn mount_repository(
     let config_str = config_path
         .to_str()
         .context("repository path is not valid UTF-8")?;
+    let passphrase_str = passphrase_file
+        .to_str()
+        .context("passphrase path is not valid UTF-8")?;
 
     let mut cmd = Command::new("gocryptfs");
     cmd.arg("--config").arg(config_str);
     cmd.arg("-extpass");
-    cmd.arg(format!(
-        "gpg --decrypt \"{}\"",
-        passphrase_file.display()
-    ));
+    cmd.arg(format!("gpg --decrypt {passphrase_str}"));
 
     if let Some(opts) = options {
         cmd.arg("-o").arg(opts);
