@@ -1,2 +1,8 @@
 cryptfs-cli
 cryptfs-cli.exe
+
+# Cargo build artifacts
+/target
+
+# Local Cargo lockfile (not tracked in this repo)
+Cargo.lock
