@@ -1,10 +1,10 @@
 # cryptfs-cli
 
-`cryptfs-cli` is a cross-platform CLI for creating, mounting, and unmounting encrypted repositories. It generates a random passphrase, encrypts it with **GPG**, and passes it to **gocryptfs** (Linux) or **cppcryptfs** (Windows) for the actual filesystem work.
+`cryptfs-cli` is a Rust CLI for creating, mounting, and unmounting encrypted repositories. It generates a random passphrase, encrypts it with **GPG**, and passes it to **gocryptfs** (Linux) or **cppcryptfs** (Windows) for the actual filesystem work.
 
 ## Requirements
 
-- Go 1.20+ (to build)
+- Rust (see `rust-toolchain.toml`, tested with stable)
 - GPG with a reachable key for the `-u/--user` flag
 - Linux: `gpg`, `gocryptfs`, `fusermount`
 - Windows: `gpg` (e.g., Gpg4win), `cppcryptfs.exe`, `cppcryptfsctl.exe`
@@ -16,14 +16,23 @@ Clone the repository and build the binary:
 ```bash
 git clone https://github.com/programfan/cryptfs-cli.git
 cd cryptfs-cli
-go build -o cryptfs-cli
+cargo build --release
 ```
 
-On Windows, use the following to create the executable:
+On Windows:
 
 ```powershell
-go build -o cryptfs-cli.exe
+cargo build --release
 ```
+
+The resulting binary lives at `target/release/cryptfs-cli`.
+
+### Tooling
+
+- `rust-toolchain.toml` pins the toolchain to stable with `rustfmt` and `clippy`.
+- `cargo fmt` formats the codebase.
+- `cargo clippy -- -D warnings` lints.
+- `cargo build` or `cargo build --release` produces the binary.
 
 ## Repository layout
 
@@ -64,7 +73,7 @@ go build -o cryptfs-cli.exe
    - `<repo_dir>`: The repository directory.
    - `<mount_point>`: The directory to mount the decrypted content.
 
-   On Linux, the mount point is created if missing and `gocryptfs` is invoked with `-extpass "gpg --decrypt passphrase.gpg"` and the provided options (passed directly to `-o`). On Windows, supply a drive letter (e.g., `X:`) or absolute path; `cppcryptfs` is called with the decrypted passphrase, and the `-o/--options` flag is currently ignored on that platform.
+On Linux, the mount point is created if missing and `gocryptfs` is invoked with `-extpass "gpg --decrypt passphrase.gpg"` and the provided options (passed directly to `-o`). On Windows, supply a drive letter (e.g., `X:`) or absolute path; `cppcryptfs` is called with the decrypted passphrase, and the `-o/--options` flag is currently ignored on that platform.
 
 3. **Unmount a Repository**
 
